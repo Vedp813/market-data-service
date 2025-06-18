@@ -1,0 +1,11 @@
+from pydantic import BaseModel
+from datetime import datetime
+
+class PriceOut(BaseModel):
+    symbol: str
+    price: float
+    timestamp: datetime
+    provider: str
+
+    class Config:
+        orm_mode = True

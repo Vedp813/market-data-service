@@ -6,3 +6,4 @@ requests
 confluent-kafka
 python-dotenv
 psycopg2-binary
+yfinance
