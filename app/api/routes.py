@@ -8,6 +8,8 @@ from app.services.provider_yf import YahooFinanceProvider
 from app.models.price import Price
 from app.core.config import DATABASE_URL
 from app.services.kafka_producer import publish_price_event
+from app.models.moving_avg import MovingAverage  
+from app.schemas.moving_avg import MovingAverageSchema
 
 router = APIRouter()
 
@@ -36,3 +38,11 @@ def get_latest_price(symbol: str, db: Session = Depends(get_db)):
         return price_obj
     except Exception as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/prices/moving_average", response_model=MovingAverageSchema)
+def get_moving_average(symbol: str, db: Session = Depends(get_db)):
+    ma_obj = db.query(MovingAverage).filter(MovingAverage.symbol == symbol.upper()).first()
+    if not ma_obj:
+        raise HTTPException(status_code=404, detail=f"Moving average for symbol {symbol} not found")
+    return ma_obj

@@ -5,7 +5,7 @@ from app.core.config import DATABASE_URL
 from sqlalchemy import create_engine
 import threading
 from app.kafka_consumer import consume_market_data
-from app.models.moving_average import MovingAverage
+from app.models.moving_avg import MovingAverage
 
 
 
@@ -17,7 +17,6 @@ app.include_router(router)
 engine = create_engine(DATABASE_URL)
 
 Base.metadata.create_all(bind=engine)
-MovingAverage.metadata.create_all(bind=engine)
 
 @app.get("/")
 def root():
