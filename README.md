@@ -49,3 +49,38 @@ docker-compose up --build
 - Database: `marketdata`
 
 ---
+
+## Stage 3: Kafka Streaming Pipeline Integration
+
+In this stage, the system streams market data through a Kafka pipeline to compute and store moving averages in real time.
+
+---
+
+### Data Flow Overview
+
+1. `GET /prices/latest?symbol=AAPL` is called.
+2. The FastAPI service:
+   - Fetches the latest price using Yahoo Finance (`yfinance`)
+   - Stores the price in the `prices` table
+   - Publishes a Kafka message to `price-events` topic
+3. Kafka consumer:
+   - Listens for new events from `price-events`
+   - Fetches the last 5 prices for the symbol
+   - Calculates the 5-point moving average
+   - Upserts the result into `symbol_averages`
+
+---
+
+### Kafka Message Schema
+
+Each price event message sent to Kafka has the following format:
+
+```json
+{
+  "symbol": "AAPL",
+  "price": 196.58,
+  "timestamp": "2025-06-19T22:05:53.620194",
+  "provider": "yahoo_finance",
+  "raw_response_id": "uuid-here"
+}
+
