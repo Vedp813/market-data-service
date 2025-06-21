@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from app.api.routes import router
 from app.models.price import Base
 from app.core.config import DATABASE_URL
-from app.kafka_consumer import consume_market_data
+from app.services.kafka_consumer import consume_market_data
 
 # Configure logging for visibility in production
 logging.basicConfig(level=logging.INFO)
