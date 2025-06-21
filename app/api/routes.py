@@ -1,48 +1,43 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 from app.schemas.price import PriceOut
-from app.services.provider_yf import YahooFinanceProvider
-from app.models.price import Price
-from app.core.config import DATABASE_URL
-from app.services.kafka_producer import publish_price_event
-from app.models.moving_avg import MovingAverage  
 from app.schemas.moving_avg import MovingAverageSchema
+from app.core.config import get_db
+from app.services.price_service import fetch_and_store_price, get_moving_average
+from fastapi.concurrency import run_in_threadpool
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
-
-def get_db():
-    db = SessionLocal()
+@router.get("/prices/latest", response_model=PriceOut, summary="Fetch latest stock price")
+async def fetch_price(
+    symbol: str = Query(..., description="Stock symbol to fetch the price for"),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetches and stores the latest stock price for the given symbol.
+    """
     try:
-        yield db
-    finally:
-        db.close()
-
-yf_provider = YahooFinanceProvider()
-
-@router.get("/prices/latest", response_model=PriceOut)
-def get_latest_price(symbol: str, db: Session = Depends(get_db)):
-    try:
-        price_obj = yf_provider.fetch_price(symbol)
-        db.merge(price_obj)  # upsert
-        db.commit()
-
-        # Publish to Kafka
-        publish_price_event(price_obj)
-
-        return price_obj
+        result = await run_in_threadpool(fetch_and_store_price, symbol, db)
+        return result
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        logger.error(f"Error fetching price for {symbol}: {str(e)}")
+        raise HTTPException(status_code=400, detail="Could not fetch price.")
 
-
-@router.get("/prices/moving_average", response_model=MovingAverageSchema)
-def get_moving_average(symbol: str, db: Session = Depends(get_db)):
-    ma_obj = db.query(MovingAverage).filter(MovingAverage.symbol == symbol.upper()).first()
-    if not ma_obj:
-        raise HTTPException(status_code=404, detail=f"Moving average for symbol {symbol} not found")
-    return ma_obj
+@router.get("/prices/movingaverage", response_model=MovingAverageSchema, summary="Get 5-point moving average")
+async def fetch_moving_average(
+    symbol: str = Query(..., description="Stock symbol to get the moving average for"),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieves the latest 5-point moving average for the given symbol.
+    """
+    try:
+        avg = await run_in_threadpool(get_moving_average, symbol, db)
+        if not avg:
+            raise HTTPException(status_code=404, detail="No moving average found.")
+        return avg
+    except Exception as e:
+        logger.error(f"Error retrieving moving average for {symbol}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal error.")
