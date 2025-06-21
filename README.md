@@ -89,37 +89,87 @@ Each price event message sent to Kafka has the following format:
 
 ## Overview
 
-This project implements a real-time market data processing microservice using FastAPI, Kafka, and PostgreSQL.  
-Stage 4 focuses on building a Kafka consumer that listens to price event messages, calculates moving averages for stock symbols, and persists the computed averages to the database.
+This project implements a **real-time market data microservice** using **FastAPI**, **Kafka**, **PostgreSQL**, and **SQLAlchemy**.
 
----
-
-## Features in Stage 4
-
+### Stage 4 Goals:
 - Kafka consumer subscribes to the `price-events` topic.
-- Consumes incoming price messages with symbol and price data.
-- Retrieves the last N price records for each symbol from PostgreSQL.
-- Calculates a 5-point moving average for the symbol.
-- Stores or updates the moving average and timestamp in the `moving_averages` table.
-- Provides a FastAPI endpoint to retrieve the latest moving average for a given symbol.
+- Processes incoming stock price messages in real-time.
+- Computes a 5-point **moving average** for each stock symbol.
+- Stores the computed averages in a PostgreSQL database.
+- Exposes a REST API to fetch the latest moving average for a symbol.
 
 ---
 
 ## Technologies Used
 
-- **FastAPI** - High-performance REST API framework
-- **Confluent Kafka Python** - Kafka consumer client
-- **SQLAlchemy** - ORM for database interaction
-- **PostgreSQL** - Relational database for storing prices and averages
-- **Docker** (optional) - Containerize Kafka and PostgreSQL for easy setup
+| Tool           | Purpose                                      |
+|----------------|----------------------------------------------|
+| **FastAPI**    | Building REST APIs                           |
+| **Kafka**      | Streaming price events                       |
+| **PostgreSQL** | Relational database                          |
+| **SQLAlchemy** | ORM for database access                      |
+| **Docker**     | Containerized Kafka and PostgreSQL setup     |
+| **Pydantic**   | Schema validation                            |
 
+
+## Environment Configuration
+
+Create a `.env` file in the root directory of the project with the following content:
+
+```env
+# .env
+
+# Postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=marketdata
+POSTGRES_PORT=5433
+
+# API
+DATABASE_URL=postgresql://postgres:postgres@localhost:${POSTGRES_PORT}/marketdata
+
+# Kafka
+KAFKA_BROKER=localhost:9092
+
+```
 ---
-
 ## Setup Instructions
 
-1. **Install dependencies:**
+1. **Clone the Repository:**
+
+   ```bash
+   git clone https://github.com/yourusername/market-data-service.git
+   cd market-data-service
+
+2. **Create and Activate a Python Virtual Environment:**
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+
+3. **Install Python Dependencies:**
 
    ```bash
    pip install -r requirements.txt
+
+4. **Start Kafka and PostgreSQL with Docker:**
+
+   ```bash
+   docker-compose up --build
+
+5. ** Start the FastAPI Backend:**
+
+   ```bash
+   uvicorn app.main:app --reload
+
+6. ** Fetch the Moving Average and Latest price via API:**
+
+   ```bash
+   curl "http://localhost:8000/prices/movingaverage?symbol=AAPL"
+   curl "http://localhost:8000/prices/latest?symbol=AAPL"
+
+
+
+
 
 
